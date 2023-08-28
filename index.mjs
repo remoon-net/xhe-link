@@ -6,7 +6,7 @@ if (!WebAssembly.instantiateStreaming) {
 }
 
 import { version } from "./package.json";
-const defaultWasmUrl = `https://unpkg.com/@remoon.cn/xhe-link@${version}/xhe.wasm`;
+const defaultWasmUrl = `https://unpkg.com/@remoon.net/xhe-link@${version}/xhe.wasm`;
 
 export async function Init(wasmUrl = defaultWasmUrl) {
   const go = new Go();
