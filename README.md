@@ -15,19 +15,20 @@
 // @match       https://www.bilibili.com/account/history
 // @version     1.0
 // @author      -
-// @require     https://unpkg.com/@remoon.cn/xhe-link@0.0.6/dist/xhe-link.umd.js
+// @require     https://unpkg.com/@remoon.net/xhe-link@0.0.1/dist/xhe-link.umd.js
 // @description 02/06/2023, 02:52:30
 // @grant none
 // ==/UserScript==
 
 XheLinkLib.Init()
   .then(async () => {
-    const xwg = await await XheLink({
-      private_key: "sM3la8r44RHb6IDVA4BQeJUrmPEzARLH3ixpJev80GQ=",
-      links: [
-        "https://lighthouse.remoon.cn/?subnet=fdd9:f800:0:1:0:2:0:201/120&node={node}&key={key}",
+    const xwg = await XheLink({
+      log_level: "debug",
+      private_key: "SA7wvbecJtRXtb9ATH9h7Vu+GLq4qoOVPg/SrxIGP0w=",
+      links: ["https://xhe.remoon.net"],
+      peers: [
+        "peer://8066d0db32b6dda61541d4513a431504599cb296b250f0b6855c7c30bcaab862",
       ],
-      // log_level: "debug", // for debug
     });
 
     const server = await xwg.ListenTCP(80);
@@ -43,7 +44,8 @@ XheLinkLib.Init()
 ```
 
 ```sh
-xhe --vtun --export 10808 -c 'https://lighthouse.remoon.cn/?ip=fdd9:f800:0:1:0:2:0:202/120&node={node}&sharedkey={key}' --log debug
+xhe --vtun --export 10808 --log debug -k oKL7+pbuh/kJvD1pleelYM5r/F5i/G5iCZ7fNqPT8lU= -p 'https://xhe.remoon.net?peer=81dea2c5c077bf78b34a518eda9851cfbe718656fdc470970bde057cbceef23e&keepalive=15'
 # another shell
-curl -x socks5://127.0.0.1:10808 -i http://[fdd9:f800:0:1:0:2:0:201]/user/x/web-interface/nav
+curl -x socks5://127.0.0.1:10808 -i http://[fdd9:f800:e85c:5789:b094:ac0b:adb0:13d6]/user/x/web-interface/nav
 ```
+ 
