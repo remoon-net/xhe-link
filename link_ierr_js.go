@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 	"syscall/js"
 
 	promise "github.com/nlepage/go-js-promise"
@@ -30,10 +29,6 @@ func connect(this js.Value, args []js.Value) (p any) {
 		defer then(&ierr, nil, func() {
 			reject(ierr.Error())
 		})
-
-		var jsFetchDisabled = js.Global().Get("process").Type() == js.TypeObject &&
-			strings.HasPrefix(js.Global().Get("process").Get("argv0").String(), "node")
-		slog.Error("xxxxxxx", jsFetchDisabled)
 
 		if len(args) == 0 {
 			return fmt.Errorf("config is required")
