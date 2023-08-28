@@ -13,7 +13,6 @@ import (
 	"syscall/js"
 
 	promise "github.com/nlepage/go-js-promise"
-	"golang.zx2c4.com/wireguard/tun/netstack"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 )
 
@@ -39,7 +38,6 @@ func (n *XheWireguard) ListenTCP(this js.Value, args []js.Value) (p any) {
 
 type TCPServer struct {
 	listener *gonet.TCPListener
-	net      *netstack.Net
 	mux      *http.ServeMux
 }
 
