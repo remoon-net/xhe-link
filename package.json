@@ -1,0 +1,42 @@
+{
+  "name": "@remoon.net/xhe-link",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.1",
+  "description": "",
+  "homepage": "https://github.com/remoon-net/xhe-link",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/remoon-net/xhe-link.git"
+  },
+  "main": "index_node.cjs",
+  "browser": "index_browser.cjs",
+  "types": "index.d.ts",
+  "files": [
+    "/dist",
+    "/go_wasm_js",
+    "/xhe.wasm",
+    "/index.d.ts",
+    "/index.mjs",
+    "/wrtc-polyfill.js",
+    "/link_test.js",
+    "/testdata"
+  ],
+  "scripts": {
+    "build": "make wasm && vite build",
+    "pretest": "npm run build",
+    "test": "go test .",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "GPL3.0",
+  "devDependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.11",
+    "@types/golang-wasm-exec": "^1.15.0",
+    "@types/node": "^20.4.5",
+    "vite": "^4.4.7",
+    "wrtc": "^0.4.7"
+  }
+}
