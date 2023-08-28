@@ -9,10 +9,10 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20230704135630-469159ecf7d1
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 	gvisor.dev/gvisor v0.0.0-20230504175454-7b0a1988a28f
-	remoon.net/xhe v0.1.2
+	remoon.net/xhe v0.1.3
 )
 
-replace remoon.net/xhe => ../xhe
+// replace remoon.net/xhe => ../xhe
 
 require (
 	filippo.io/edwards25519 v1.0.0 // indirect
