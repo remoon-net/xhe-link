@@ -6,6 +6,5 @@
   "go.testEnvVars": {
     "GOOS": "",
     "GOARCH": ""
-  },
-  "go.testTags": ""
+  }
 }
