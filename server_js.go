@@ -107,15 +107,20 @@ func (l *TCPServer) ReverseProxy(this js.Value, args []js.Value) (p any) {
 			return
 		}
 
-		var proxy = httputil.NewSingleHostReverseProxy(remote)
-		proxy.Transport = removeUserAgentTransport{proxy.Transport}
+		director := httputil.NewSingleHostReverseProxy(remote).Director
+		var proxy = &httputil.ReverseProxy{
+			Rewrite: func(pr *httputil.ProxyRequest) {
+				r := pr.Out
+				r.Header.Del("User-Agent")
+				injectJsFetchOptions(r)
+				director(r)
+			},
+		}
 
 		var handler http.Handler = proxy
 		if path != "/" {
 			handler = http.StripPrefix(path, handler)
 		}
-		handler = omitForwardHeader(handler) // omit X-Forwarded-For header
-		handler = injectJsFetchOptions(handler)
 		l.mux.Handle(path, handler)
 		resolve(path)
 		return
@@ -123,40 +128,17 @@ func (l *TCPServer) ReverseProxy(this js.Value, args []js.Value) (p any) {
 	return
 }
 
-func omitForwardHeader(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Header["X-Forwarded-For"] = nil
-		h.ServeHTTP(w, r)
-	})
-}
-
-type removeUserAgentTransport struct {
-	http.RoundTripper
-}
-
-func (r removeUserAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	transport := r.RoundTripper
-	if transport == nil {
-		transport = http.DefaultTransport
-	}
-	req.Header.Del("User-Agent")
-	return transport.RoundTrip(req)
-}
-
 const jsFetchOptInPrefix = "Js.fetch."
 const jsFetchOptPrefix = "js.fetch:"
 
-func injectJsFetchOptions(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for k, vv := range r.Header {
-			if strings.HasPrefix(k, jsFetchOptInPrefix) {
-				r.Header.Del(k)
-				k = jsFetchOptPrefix + k[len(jsFetchOptInPrefix):]
-				r.Header[k] = vv
-			}
+func injectJsFetchOptions(r *http.Request) {
+	for k, vv := range r.Header {
+		if strings.HasPrefix(k, jsFetchOptInPrefix) {
+			r.Header.Del(k)
+			k = jsFetchOptPrefix + k[len(jsFetchOptInPrefix):]
+			r.Header[k] = vv
 		}
-		h.ServeHTTP(w, r)
-	})
+	}
 }
 
 func (l *TCPServer) HandleEval(this js.Value, args []js.Value) (p any) {
