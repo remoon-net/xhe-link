@@ -102,6 +102,5 @@ curl -x socks5://127.0.0.1:10808 \
   -H 'authorization: Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA' \
   -H 'js.fetch.credentials: include' \
   'http://twitter.com/i/api/graphql/_pnlqeTOtnpbIL9o-fS_pg/ProfileSpotlightsQuery?variables=%7B%22screen_name%22%3A%22shynome%22%7D' \
-  # ip fdd9:f800:1325:6416:ba5a:cfba:f495:2536 is from `xhe ip pubkey1`
-  --resolve twitter.com:80:fdd9:f800:1325:6416:ba5a:cfba:f495:2536
+  --resolve twitter.com:80:$(xhe ip {pubkey1})
 ```
