@@ -29,7 +29,7 @@ so we need disable csp to allow UserScript execute, by use extenstion like [CSP 
 // @match       *://twitter.com/*
 // @version     1.0
 // @author      -
-// @require     https://unpkg.com/@remoon.net/xhe-link@0.0.4/dist/xhe-link.umd.js
+// @require     https://unpkg.com/@remoon.net/xhe-link@0.0.6/dist/xhe-link.umd.js
 // @run-at      document-start
 // @description 02/06/2023, 02:52:30
 // @grant none
