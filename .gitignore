@@ -1,5 +1,4 @@
 *.wasm
-/go_wasm_js/wasm_exec.js
 
 # Created by https://www.toptal.com/developers/gitignore/api/node
 # Edit at https://www.toptal.com/developers/gitignore?templates=node
