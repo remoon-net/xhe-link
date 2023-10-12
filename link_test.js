@@ -1,5 +1,6 @@
 // @ts-check
 const { Init } = require(".");
+const { Hono } = require("hono");
 
 const server = require("http")
   .createServer((req, res) => {
@@ -29,6 +30,16 @@ let p = Init().then(async () => {
           "https://xhe.remoon.net?peer=81dea2c5c077bf78b34a518eda9851cfbe718656fdc470970bde057cbceef23e&keepalive=15",
         ],
       });
+
+  {
+    let server = await xhe.ListenTCP(7070);
+    const app = new Hono();
+    app.all("/", (c) => {
+      return c.text("hello hono");
+    });
+    server.ServeHTTP(app);
+  }
+
   let server = await xhe.ListenTCP();
   server.Serve().catch(() => {
     // donothing

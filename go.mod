@@ -7,6 +7,7 @@ require (
 	github.com/lainio/err2 v0.9.41
 	github.com/nlepage/go-js-promise v1.1.0
 	github.com/shynome/err0 v0.1.0
+	github.com/shynome/wahttp v0.0.6
 	github.com/stretchr/testify v1.8.3
 	golang.zx2c4.com/wireguard v0.0.0-20230704135630-469159ecf7d1
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6

@@ -36,6 +36,7 @@
     "@mapbox/node-pre-gyp": "^1.0.11",
     "@types/golang-wasm-exec": "^1.15.0",
     "@types/node": "^20.4.5",
+    "hono": "^3.7.5",
     "vite": "^4.4.7",
     "wrtc": "^0.4.7"
   }

@@ -100,10 +100,18 @@ func TestReqAtServer(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	client := newClient(tun)
-	resp := try.To1(client.Get(fmt.Sprintf("http://[%s]/", key2.ip)))
-	body := try.To1(io.ReadAll(resp.Body))
-	t.Log(string(body))
-	assert.Equal(t, "hello world", string(body))
+	{
+		resp := try.To1(client.Get(fmt.Sprintf("http://[%s]/", key2.ip)))
+		body := try.To1(io.ReadAll(resp.Body))
+		t.Log(string(body))
+		assert.Equal(t, "hello world", string(body))
+	}
+	{
+		resp := try.To1(client.Get(fmt.Sprintf("http://[%s]:7070/", key2.ip)))
+		body := try.To1(io.ReadAll(resp.Body))
+		t.Log(string(body))
+		assert.Equal(t, "hello hono", string(body))
+	}
 }
 
 func TestReqAtClient(t *testing.T) {

@@ -16,8 +16,13 @@ export interface XheWireguard {
   IpcSet(config: string): Promise<void>;
 }
 
+export interface Hono {
+  fetch(req: Request): Response | Promise<Response>;
+}
+
 export interface TCPServer {
   Serve(): Promise<void>;
+  ServeHTTP(hono: Hono): Promise<void>;
   Close(): Promise<void>;
   ServeReady(): boolean;
   ReverseProxy(path: string, remote: string): Promise<void>;

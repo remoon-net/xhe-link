@@ -38,7 +38,7 @@ func (n *XheWireguard) ListenTCP(this js.Value, args []js.Value) (p any) {
 
 type TCPServer struct {
 	listener *gonet.TCPListener
-	mux      *http.ServeMux
+	mux      http.Handler
 }
 
 func NewTCPServer(l *gonet.TCPListener) *TCPServer {
@@ -50,6 +50,7 @@ func NewTCPServer(l *gonet.TCPListener) *TCPServer {
 func (l *TCPServer) ToJS() (root js.Value) {
 	root = js.Global().Get("Object").New()
 	root.Set("Serve", js.FuncOf(l.Serve))
+	root.Set("ServeHTTP", js.FuncOf(l.ServeHTTP))
 	root.Set("Close", js.FuncOf(l.Close))
 	root.Set("ServeReady", js.FuncOf(l.ServeReady))
 	root.Set("ReverseProxy", js.FuncOf(l.ReverseProxy))
@@ -64,6 +65,24 @@ func (l *TCPServer) Serve(this js.Value, args []js.Value) (p any) {
 			reject(err.Error())
 		})
 		l.mux = http.NewServeMux()
+		try.To(http.Serve(l.listener, l.mux))
+		resolve("exited")
+		return
+	}()
+	return
+}
+
+func (l *TCPServer) ServeHTTP(this js.Value, args []js.Value) (p any) {
+	p, resolve, reject := promise.New()
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
+		})
+		if len(args) == 0 {
+			reject("rqeuire http server implement {fetch(Request):Response}")
+			return
+		}
+		l.mux = NewHono(args[0])
 		try.To(http.Serve(l.listener, l.mux))
 		resolve("exited")
 		return
@@ -114,7 +133,12 @@ func (l *TCPServer) ReverseProxy(this js.Value, args []js.Value) (p any) {
 		if path != "/" {
 			handler = http.StripPrefix(path, handler)
 		}
-		l.mux.Handle(path, handler)
+		mux, ok := l.mux.(*http.ServeMux)
+		if !ok {
+			reject("not *http.ServeMux")
+			return
+		}
+		mux.Handle(path, handler)
 		resolve(path)
 		return
 	}()
@@ -135,18 +159,31 @@ func injectJsFetchOptions(r *http.Request) {
 }
 
 func (l *TCPServer) HandleEval(this js.Value, args []js.Value) (p any) {
-	path := args[0].String()
-	l.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		var err error
+	p, resolve, reject := promise.New()
+	go func() (err error) {
 		defer err0.Then(&err, nil, func() {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, err.Error())
+			reject(err.Error())
 		})
-		content := try.To1(io.ReadAll(r.Body))
-		j := try.To1(Eval(string(content)))
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, j)
-	})
+		path := args[0].String()
+		mux, ok := l.mux.(*http.ServeMux)
+		if !ok {
+			reject("not *http.ServeMux")
+			return
+		}
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			var err error
+			defer err0.Then(&err, nil, func() {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, err.Error())
+			})
+			content := try.To1(io.ReadAll(r.Body))
+			j := try.To1(Eval(string(content)))
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, j)
+		})
+		resolve(path)
+		return
+	}()
 	return
 }
 
