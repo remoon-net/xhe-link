@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
-	"github.com/lainio/err2/assert"
+	"github.com/shynome/err0/try"
+	"github.com/stretchr/testify/assert"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 	"remoon.net/xhe/pkg/vtun"
@@ -38,50 +39,27 @@ var clientCfg xhe.Config
 var signalerAddr string = "127.0.0.1:61111"
 
 func TestMain(m *testing.M) {
-	var ierr error
-	defer then(&ierr, nil, func() {
-		panic(ierr)
-	})
 
-	key1.key, ierr = base64.StdEncoding.DecodeString("SA7wvbecJtRXtb9ATH9h7Vu+GLq4qoOVPg/SrxIGP0w=")
-	if ierr != nil {
-		return
-	}
-	key2.key, ierr = base64.StdEncoding.DecodeString("oKL7+pbuh/kJvD1pleelYM5r/F5i/G5iCZ7fNqPT8lU=")
-	if ierr != nil {
-		return
-	}
+	key1.key = try.To1(base64.StdEncoding.DecodeString("SA7wvbecJtRXtb9ATH9h7Vu+GLq4qoOVPg/SrxIGP0w="))
+	key2.key = try.To1(base64.StdEncoding.DecodeString("oKL7+pbuh/kJvD1pleelYM5r/F5i/G5iCZ7fNqPT8lU="))
 
-	ierr = exec.Command("npm", "run", "build").Run()
-	if ierr != nil {
-		return
-	}
-	ierr = func() (ierr error) {
+	try.To(exec.Command("npm", "run", "build").Run())
+
+	func() {
 		pubkey := wgtypes.Key(key1.key).PublicKey()
 		key1.pubkey = pubkey[:]
-		ip, ierr := xhe.GetIP(key1.pubkey)
-		if ierr != nil {
-			return
-		}
+		ip := try.To1(xhe.GetIP(key1.pubkey))
 		key1.ip = ip.Addr().String()
 		return
 	}()
-	if ierr != nil {
-		return
-	}
-	ierr = func() (ierr error) {
+
+	func() {
 		pubkey := wgtypes.Key(key2.key).PublicKey()
 		key2.pubkey = pubkey[:]
-		ip, ierr := xhe.GetIP(key2.pubkey)
-		if ierr != nil {
-			return
-		}
+		ip := try.To1(xhe.GetIP(key2.pubkey))
 		key2.ip = ip.Addr().String()
 		return
 	}()
-	if ierr != nil {
-		return
-	}
 
 	serverCfg = xhe.Config{
 		LogLevel:   slog.LevelDebug,
@@ -100,120 +78,66 @@ func TestMain(m *testing.M) {
 	}
 
 	caddy := exec.Command("caddy", "file-server", "--listen", signalerAddr)
-	ierr = caddy.Start()
-	if ierr != nil {
-		return
-	}
+	try.To(caddy.Start())
 	defer caddy.Process.Kill()
 
 	m.Run()
 }
 
 func TestReqAtServer(t *testing.T) {
-	var ierr error
-	defer then(&ierr, nil, func() {
-		t.Error(ierr)
-	})
 	cfg := serverCfg
-	tun, ierr := vtun.CreateTUN("xhe", 2400-80)
-	if ierr != nil {
-		return
-	}
+	tun := try.To1(vtun.CreateTUN("xhe", 2400-80))
 	cfg.GoTun = tun
-	dev, ierr := xhe.Run(cfg)
-	if ierr != nil {
-		return
-	}
+	dev := try.To1(xhe.Run(cfg))
 	defer dev.Close()
 
 	cmd := exec.Command("node", "link_test.js")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	ierr = cmd.Start()
-	if ierr != nil {
-		return
-	}
+	try.To(cmd.Start())
 	defer cmd.Process.Kill()
 
 	time.Sleep(5 * time.Second)
 
 	client := newClient(tun)
-	resp, ierr := client.Get(fmt.Sprintf("http://[%s]/", key2.ip))
-	if ierr != nil {
-		return
-	}
-	body, ierr := io.ReadAll(resp.Body)
-	if ierr != nil {
-		return
-	}
+	resp := try.To1(client.Get(fmt.Sprintf("http://[%s]/", key2.ip)))
+	body := try.To1(io.ReadAll(resp.Body))
 	t.Log(string(body))
-	assert.Equal(string(body), "hello world")
+	assert.Equal(t, "hello world", string(body))
 }
 
 func TestReqAtClient(t *testing.T) {
-	var ierr error
-	defer then(&ierr, nil, func() {
-		t.Error(ierr)
-	})
 	cmd := exec.Command("node", "link_test.js", "server")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	ierr = cmd.Start()
-	if ierr != nil {
-		return
-	}
+	try.To(cmd.Start())
 	defer cmd.Process.Kill()
 
 	time.Sleep(2 * time.Second)
 
 	cfg := clientCfg
-	tun, ierr := vtun.CreateTUN("xhe", 2400-80)
-	if ierr != nil {
-		return
-	}
+	tun := try.To1(vtun.CreateTUN("xhe", 2400-80))
 	cfg.GoTun = tun
-	dev, ierr := xhe.Run(cfg)
-	if ierr != nil {
-		return
-	}
+	dev := try.To1(xhe.Run(cfg))
 	defer dev.Close()
 
-	stats, ierr := dev.IpcGet()
-	if ierr != nil {
-		return
-	}
+	stats := try.To1(dev.IpcGet())
 	fmt.Println(stats)
 
 	time.Sleep(3 * time.Second)
 
 	client := newClient(tun)
-	resp, ierr := client.Get(fmt.Sprintf("http://[%s]/", key1.ip))
-	if ierr != nil {
-		return
-	}
-	body, ierr := io.ReadAll(resp.Body)
-	if ierr != nil {
-		return
-	}
+	resp := try.To1(client.Get(fmt.Sprintf("http://[%s]/", key1.ip)))
+	body := try.To1(io.ReadAll(resp.Body))
 	t.Log(string(body))
-	assert.Equal(string(body), "hello world")
+	assert.Equal(t, "hello world", string(body))
 }
 
 func TestReqBrowserAtServer(t *testing.T) {
-	var ierr error
-	defer then(&ierr, nil, func() {
-		t.Error(ierr)
-	})
 	cfg := serverCfg
-	tun, ierr := vtun.CreateTUN("xhe", 2400-80)
-	if ierr != nil {
-		return
-	}
+	tun := try.To1(vtun.CreateTUN("xhe", 2400-80))
 	cfg.GoTun = tun
-	dev, ierr := xhe.Run(cfg)
-	if ierr != nil {
-		return
-	}
+	dev := try.To1(xhe.Run(cfg))
 	defer dev.Close()
 
 	{
@@ -227,33 +151,19 @@ func TestReqBrowserAtServer(t *testing.T) {
 		tasks := []chromedp.Action{
 			chromedp.Navigate(fmt.Sprintf("http://%s/testdata/", signalerAddr)),
 		}
-		ierr = chromedp.Run(ctx, tasks...)
-		if ierr != nil {
-			return
-		}
+		try.To(chromedp.Run(ctx, tasks...))
 	}
 
 	time.Sleep(5 * time.Second)
 
 	client := newClient(tun)
-	resp, ierr := client.Get(fmt.Sprintf("http://[%s]/hello.txt", key2.ip))
-	if ierr != nil {
-		return
-	}
-	body, ierr := io.ReadAll(resp.Body)
-	if ierr != nil {
-		return
-	}
+	resp := try.To1(client.Get(fmt.Sprintf("http://[%s]/hello.txt", key2.ip)))
+	body := try.To1(io.ReadAll(resp.Body))
 	t.Log(body)
-	assert.Equal(string(body), "hello world")
+	assert.Equal(t, "hello world", string(body))
 }
 
 func TestReqBrowserAtClient(t *testing.T) {
-	var ierr error
-	defer then(&ierr, nil, func() {
-		t.Error(ierr)
-	})
-
 	{
 		opts := chromedp.DefaultExecAllocatorOptions[:]
 		// opts = append(opts, chromedp.Flag("headless", false))
@@ -265,39 +175,24 @@ func TestReqBrowserAtClient(t *testing.T) {
 		tasks := []chromedp.Action{
 			chromedp.Navigate(fmt.Sprintf("http://%s/testdata/?server=1", signalerAddr)),
 		}
-		ierr = chromedp.Run(ctx, tasks...)
-		if ierr != nil {
-			return
-		}
+		try.To(chromedp.Run(ctx, tasks...))
 	}
 
 	time.Sleep(3 * time.Second)
 
 	cfg := clientCfg
-	tun, ierr := vtun.CreateTUN("xhe", 2400-80)
-	if ierr != nil {
-		return
-	}
+	tun := try.To1(vtun.CreateTUN("xhe", 2400-80))
 	cfg.GoTun = tun
-	dev, ierr := xhe.Run(cfg)
-	if ierr != nil {
-		return
-	}
+	dev := try.To1(xhe.Run(cfg))
 	defer dev.Close()
 
 	time.Sleep(3 * time.Second)
 
 	client := newClient(tun)
-	resp, ierr := client.Get(fmt.Sprintf("http://[%s]/hello.txt", key1.ip))
-	if ierr != nil {
-		return
-	}
-	body, ierr := io.ReadAll(resp.Body)
-	if ierr != nil {
-		return
-	}
+	resp := try.To1(client.Get(fmt.Sprintf("http://[%s]/hello.txt", key1.ip)))
+	body := try.To1(io.ReadAll(resp.Body))
 	t.Log(string(body))
-	assert.Equal(string(body), "hello world")
+	assert.Equal(t, "hello world", string(body))
 }
 
 func newClient(tun vtun.GetStack) *http.Client {
@@ -305,9 +200,9 @@ func newClient(tun vtun.GetStack) *http.Client {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (conn net.Conn, ierr error) {
-				d, ierr := netip.ParseAddrPort(addr)
-				if ierr != nil {
+			DialContext: func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
+				d, err := netip.ParseAddrPort(addr)
+				if err != nil {
 					return
 				}
 				fa, pn := convertToFullAddr(tun.NIC(), d)

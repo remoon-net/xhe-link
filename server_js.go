@@ -11,6 +11,8 @@ import (
 	"syscall/js"
 
 	promise "github.com/nlepage/go-js-promise"
+	"github.com/shynome/err0"
+	"github.com/shynome/err0/try"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 )
 
@@ -20,16 +22,13 @@ func (n *XheWireguard) ListenTCP(this js.Value, args []js.Value) (p any) {
 	if len(args) >= 1 {
 		port = args[0].Int()
 	}
-	go func() (ierr error) {
-		defer then(&ierr, nil, func() {
-			reject(ierr.Error())
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
 		})
 		addr := netip.AddrPortFrom(netip.Addr{}, uint16(port))
 		fa, pn := convertToFullAddr(n.nic, addr)
-		l, ierr := gonet.ListenTCP(n.stack, fa, pn)
-		if ierr != nil {
-			return
-		}
+		l := try.To1(gonet.ListenTCP(n.stack, fa, pn))
 		s := NewTCPServer(l)
 		resolve(s.ToJS())
 		return
@@ -60,15 +59,12 @@ func (l *TCPServer) ToJS() (root js.Value) {
 
 func (l *TCPServer) Serve(this js.Value, args []js.Value) (p any) {
 	p, resolve, reject := promise.New()
-	go func() (ierr error) {
-		defer then(&ierr, nil, func() {
-			reject(ierr.Error())
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
 		})
 		l.mux = http.NewServeMux()
-		ierr = http.Serve(l.listener, l.mux)
-		if ierr != nil {
-			return
-		}
+		try.To(http.Serve(l.listener, l.mux))
 		resolve("exited")
 		return
 	}()
@@ -93,19 +89,16 @@ func (l *TCPServer) Close(this js.Value, args []js.Value) (p any) {
 
 func (l *TCPServer) ReverseProxy(this js.Value, args []js.Value) (p any) {
 	p, resolve, reject := promise.New()
-	go func() (ierr error) {
-		defer then(&ierr, nil, func() {
-			reject(ierr.Error())
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
 		})
 		if len(args) < 2 {
 			reject("path and host is required")
 			return
 		}
 		path := args[0].String()
-		remote, ierr := url.Parse(args[1].String())
-		if ierr != nil {
-			return
-		}
+		remote := try.To1(url.Parse(args[1].String()))
 
 		director := httputil.NewSingleHostReverseProxy(remote).Director
 		var proxy = &httputil.ReverseProxy{
@@ -144,30 +137,24 @@ func injectJsFetchOptions(r *http.Request) {
 func (l *TCPServer) HandleEval(this js.Value, args []js.Value) (p any) {
 	path := args[0].String()
 	l.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		var ierr error
-		defer then(&ierr, nil, func() {
+		var err error
+		defer err0.Then(&err, nil, func() {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, ierr.Error())
+			fmt.Fprint(w, err.Error())
 		})
-		content, ierr := io.ReadAll(r.Body)
-		if ierr != nil {
-			return
-		}
-		j, ierr := Eval(string(content))
-		if ierr != nil {
-			return
-		}
+		content := try.To1(io.ReadAll(r.Body))
+		j := try.To1(Eval(string(content)))
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, j)
 	})
 	return
 }
 
-func Eval(content string) (s string, ierr error) {
+func Eval(content string) (s string, err error) {
 	f := js.Global().Get("Function").New("resolve", "reject", fmt.Sprintf(`"use strict";%s;resolve();`, content))
 	p := js.Global().Get("Promise").New(f)
-	v, ierr := promise.Await(p)
-	if ierr != nil {
+	v, err := promise.Await(p)
+	if err != nil {
 		return
 	}
 	s = js.Global().Get("JSON").Call("stringify", v).String()

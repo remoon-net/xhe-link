@@ -7,6 +7,8 @@ import (
 	"syscall/js"
 
 	promise "github.com/nlepage/go-js-promise"
+	"github.com/shynome/err0"
+	"github.com/shynome/err0/try"
 	"golang.zx2c4.com/wireguard/device"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -21,31 +23,22 @@ func main() {
 
 func connect(this js.Value, args []js.Value) (p any) {
 	p, resolve, reject := promise.New()
-	go func() (ierr error) {
-		defer then(&ierr, nil, func() {
-			reject(ierr.Error())
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
 		})
 
 		if len(args) == 0 {
 			return fmt.Errorf("config is required")
 		}
 
-		config, ierr := getConfig[xhe.Config](args[0])
-		if ierr != nil {
-			return
-		}
+		config := try.To1(getConfig[xhe.Config](args[0]))
 		h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: config.LogLevel})
 		slog.SetDefault(slog.New(h))
 
-		tun, ierr := vtun.CreateTUN("xhe", 2400-80)
-		if ierr != nil {
-			return
-		}
+		tun := try.To1(vtun.CreateTUN("xhe", 2400-80))
 		config.GoTun = tun
-		dev, ierr := xhe.Run(config)
-		if ierr != nil {
-			return
-		}
+		dev := try.To1(xhe.Run(config))
 		stack := tun.GetStack()
 
 		xwg := NewXheWireguard(dev, stack, tun.NIC())
@@ -79,14 +72,11 @@ func (xwg *XheWireguard) ToJS() (root js.Value) {
 
 func (n *XheWireguard) IpcGet(this js.Value, args []js.Value) (p any) {
 	p, resolve, reject := promise.New()
-	go func() (ierr error) {
-		defer then(&ierr, nil, func() {
-			reject(ierr.Error())
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
 		})
-		config, ierr := n.dev.IpcGet()
-		if ierr != nil {
-			return
-		}
+		config := try.To1(n.dev.IpcGet())
 		resolve(config)
 		return
 	}()
@@ -95,18 +85,15 @@ func (n *XheWireguard) IpcGet(this js.Value, args []js.Value) (p any) {
 
 func (n *XheWireguard) IpcSet(this js.Value, args []js.Value) (p any) {
 	p, resolve, reject := promise.New()
-	go func() (ierr error) {
-		defer then(&ierr, nil, func() {
-			reject(ierr.Error())
+	go func() (err error) {
+		defer err0.Then(&err, nil, func() {
+			reject(err.Error())
 		})
 		if len(args) == 0 {
 			return fmt.Errorf("wireguard config required")
 		}
 		conf := args[0].String()
-		ierr = n.dev.IpcSet(conf)
-		if ierr != nil {
-			return
-		}
+		try.To(n.dev.IpcSet(conf))
 		resolve("")
 		return
 	}()
